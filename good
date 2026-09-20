@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>神奇動物在哪裡？動物冷知識大挑戰！</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #0c1445; color: white; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #ffcc00; margin-bottom: 20px; }
+        .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-width: 1100px; margin: 0 auto; }
+        .category { background-color: #001275; border: 2px solid #0022cc; padding: 15px 5px; font-weight: bold; font-size: 18px; color: #ffcc00; }
+        .card { background-color: #0019a8; border: 2px solid #0022cc; font-size: 28px; font-weight: bold; color: #ffcc00; padding: 30px 0; cursor: pointer; transition: 0.2s; }
+        .card:hover { background-color: #0025f5; }
+        .card.played { background-color: #080c24; color: #334488; cursor: default; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; }
+        .modal-content { background: #001275; border: 3px solid #ffcc00; padding: 40px; border-radius: 10px; max-width: 600px; width: 80%; color: white; }
+        .question { font-size: 22px; margin-bottom: 20px; line-height: 1.5; }
+        .answer { font-size: 20px; color: #00ffcc; margin-top: 20px; display: none; font-weight: bold; }
+        .btn { background: #ffcc00; color: #000; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 5px; border-radius: 5px; }
+        .btn:hover { background: #ffe066; }
+    </style>
+</head>
+<body>
+
+<h1>神奇動物在哪裡？動物冷知識大挑戰！</h1>
+
+<div class="board" id="board"></div>
+
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <div class="question" id="q-text"></div>
+        <div class="answer" id="a-text"></div>
+        <button class="btn" onclick="showAnswer()">顯示答案</button>
+        <button class="btn" onclick="closeModal()">關閉題目</button>
+    </div>
+</div>
+
+<script>
+const gameData = [
+    {
+        cat: "海洋與水生生物",
+        clues: [
+            { pts: 100, q: "這種海洋哺乳動物在睡覺時會保持半邊大腦清醒，並睜開一隻眼睛，以便呼吸和防範天敵。", a: "海豚（或鯨魚）" },
+            { pts: 200, q: "這種動物是世界上唯一由「雄性」負責懷孕和分娩的脊椎動物。", a: "海馬" },
+            { pts: 300, q: "這種頭足類動物擁有三顆心臟，且血液因為含有銅元素而呈現藍色。", a: "章魚" },
+            { pts: 400, q: "這種被稱為「燈塔水母」的生物，在面對飢餓或物理損傷時能逆轉生命週期重返幼體，因此被認為具備什麼能力？", a: "永生（或長生不老）" },
+            { pts: 500, q: "這種體型巨大的海洋哺乳動物，其心臟重量可達 180 公斤，血管粗到連人類嬰兒都能在裡面游泳。", a: "藍鯨" }
+        ]
+    },
+    {
+        cat: "陸地哺乳動物",
+        clues: [
+            { pts: 100, q: "這種高大的非洲動物，雖然頸部極長，但其頸椎骨的數量卻與人類一樣只有 7 塊。", a: "長頸鹿" },
+            { pts: 200, q: "這種澳洲特有生物的糞便呈現罕見的「正方形/立方體」，能防止糞便從岩石上滾落。", a: "袋熊（Wombat）" },
+            { pts: 300, q: "北極熊的毛髮實際上是透明且中空的，那麼牠們掩蓋在毛髮底下的皮膚是什麼顏色？", a: "黑色" },
+            { pts: 400, q: "貓咪無法品嚐出五味（酸、甜、苦、辣、鹹）中的哪一種味道？", a: "甜味" },
+            { pts: 500, q: "這種陸地大型動物雖然體型龐大，但因為腿部骨骼結構與體重限制，成為唯一「無法跳躍」的哺乳動物。", a: "大象" }
+        ]
+    },
+    {
+        cat: "鳥類與昆蟲",
+        clues: [
+            { pts: 100, q: "這種鳥類是唯一能夠「倒著飛」的鳥類，每秒翅膀可振動數十次。", a: "蜂鳥" },
+            { pts: 200, q: "這種昆蟲的味覺器官並非長在嘴巴，而是長在牠們的「腳」（足部）上。", a: "蝴蝶" },
+            { pts: 300, q: "這種不會飛的南極鳥類，雄性會將蛋放在腳背上並用皮褶覆蓋孵卵，期間長達數月不吃不喝。", a: "帝企鵝" },
+            { pts: 400, q: "這種昆蟲就算頭部被切斷，依然可以存活數週，最終死因通常是無法進食而餓死。", a: "蟑螂" },
+            { pts: 500, q: "鴕鳥是世界上體型最大的鳥類，牠們的「哪一個器官」比牠們的大腦還要大？", a: "眼睛" }
+        ]
+    },
+    {
+        cat: "兩棲與爬蟲類",
+        clues: [
+            { pts: 100, q: "變色龍改變身體顏色主要不是為了融入環境偽裝，而是為了調節體溫和表達什麼？", a: "情緒（或溝通/社交狀態）" },
+            { pts: 200, q: "蛇類沒有外耳，牠們主要是靠哪個部位感受地面的震動來察覺周遭環境？", a: "下巴（或下頜骨）" },
+            { pts: 300, q: "這種兩棲動物具有極強的再生能力，不僅能再生四肢，連心臟和腦部受損都能自我修復，俗稱「六角恐龍」。", a: "美西螈（Axolotl / 墨西哥鈍口螈）" },
+            { pts: 400, q: "許多烏龜在冬眠或長時間潛水時，除了用肺呼吸外，還能透過體內的哪個器官進行氣體交換（俗稱「臀部呼吸」）？", a: "洩殖腔（或屁股/尾部）" },
+            { pts: 500, q: "鱷魚在吞食獵物時常會流下眼淚，這種現象稱為「鱷魚的眼淚」，實際上是因為什麼原因導致的？", a: "咀嚼或張大嘴巴時壓迫到淚腺（物理生理反應）" }
+        ]
+    },
+    {
+        cat: "動物極限之王",
+        clues: [
+            { pts: 100, q: "這種微小的節肢動物是動物界的跳高冠軍，能跳出超過自身體長數百倍的高度。", a: "跳蚤" },
+            { pts: 200, q: "這種被稱為「水熊蟲」的微小生物，能夠在高溫、零下低溫、高輻射甚至真空的極端環境下生存，牠們進入的休眠狀態稱為什麼？", a: "隱生狀態（Cryptobiosis）" },
+            { pts: 300, q: "世界上最孤獨的鯨魚「52赫茲」（52 Hz），是因為它的什麼特徵與其他同類不同而無法溝通？", a: "歌聲/鳴叫的頻率太高" },
+            { pts: 400, q: "槍蝦（Pistol Shrimp）閉合大螯時產生的水流速度極快，能產生高達上千度的高溫與強烈衝擊波，這種現象稱為什麼？", a: "空穴現象（Cavitation / 空蝕氣泡）" },
+            { pts: 500, q: "這種甲殼類動物（螳螂蝦/雀尾螳螂蝦）擁有動物界最複雜的視覺系統，能夠看到幾種光覺受體？", a: "16 種（答出 12-16 種皆可算對）" }
+        ]
+    }
+];
+
+const board = document.getElementById('board');
+let currentCard = null;
+
+// Render Categories
+gameData.forEach(col => {
+    const catDiv = document.createElement('div');
+    catDiv.className = 'category';
+    catDiv.innerText = col.cat;
+    board.appendChild(catDiv);
+});
+
+// Render Cards Row by Row
+for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+        const item = gameData[c].clues[r];
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerText = item.pts;
+        card.onclick = () => openQuestion(card, item.q, item.a);
+        board.appendChild(card);
+    }
+}
+
+function openQuestion(card, q, a) {
+    if (card.classList.contains('played')) return;
+    currentCard = card;
+    document.getElementById('q-text').innerText = q;
+    document.getElementById('a-text').innerText = "答案：" + a;
+    document.getElementById('a-text').style.display = 'none';
+    document.getElementById('modal').style.display = 'flex';
+}
+
+function showAnswer() {
+    document.getElementById('a-text').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+    if (currentCard) {
+        currentCard.classList.add('played');
+        currentCard.innerText = '';
+    }
+}
+</script>
+</body>
+</html>
